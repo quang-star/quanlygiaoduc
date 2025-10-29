@@ -1,0 +1,427 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Attendance;
+use App\Models\ClassModel;
+use App\Models\Contract;
+use App\Models\Course;
+use App\Models\User;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class ClassController extends Controller
+{
+    public function getIndex(Request $request)
+    {
+        $param = $request->all();
+        $classes = ClassModel::with(['course', 'teacher'])
+            ->withCount('contracts')
+            ->get();
+        //  dd($classes);
+        return view('admin.classes.class', compact('classes'));
+    }
+
+    public function addClass(Request $request)
+    {
+        $courses = Course::all();
+        $teachers = User::where('role', User::ROLE_TEACHER)->get();
+        $supporters = User::where('role', User::ROLE_SUPPOTER)->get();
+
+        // Nếu có course_id truyền qua query (?course_id=xxx)
+        $selectedCourse = null;
+        if ($request->has('course_id')) {
+            $selectedCourse = Course::find($request->course_id);
+        }
+
+        // Lấy học viên chưa có class_id
+        $students = DB::table('contracts')
+            ->join('stuent_profiles', 'contracts.student_profile_id', '=', 'stuent_profiles.id')->join('users', 'stuent_profiles.student_id', '=', 'users.id')
+            ->whereNull('contracts.class_id')
+            ->select('users.id', 'users.name', 'users.phone_number', 'contracts.course_id', 'contracts.class_id')
+            ->get();
+
+        return view('admin.classes.add-class', compact('courses', 'teachers', 'supporters', 'students', 'selectedCourse'));
+    }
+
+
+    public function storeClass(Request $request)
+    {
+        // Check tên lớp trùng lập
+        $existClassName = ClassModel::where('name', $request->name)->exists();
+        if ($existClassName) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Tên lớp đã tồn tại, vui lòng nhập tên khác!');
+        }
+        // Check ngày kết thúc > khai giảng
+        if ($request->end_date && $request->end_date < $request->start_date) {
+            return redirect()->back()->withInput()->with('error', 'Ngày kết thúc phải sau ngày khai giảng!');
+        }
+
+        // Xử lý time_start & time_end
+        $time_start = null;
+        $time_end = null;
+        if (!empty($request->time_range)) {
+            [$time_start, $time_end] = explode('-', $request->time_range);
+            $time_start = trim(str_replace('h', ':', $time_start)); // đổi 08h00 -> 08:00
+            $time_end = trim(str_replace('h', ':', $time_end));     // đổi 09h30 -> 09:30
+        }
+
+        // Xử lý schedule
+        $schedule = is_array($request->schedule)
+            ? implode(', ', $request->schedule)
+            : $request->schedule;
+
+        // Sinh danh sách ngày học (day_learn)
+        $dayLearn = [];
+        if ($request->start_date && $request->end_date && !empty($schedule)) {
+            $days = collect(explode(',', str_replace(['Thứ ', ' '], '', $schedule))); // ["2", "5"]
+            $start = Carbon::parse($request->start_date);
+            $end = Carbon::parse($request->end_date);
+            $period = CarbonPeriod::create($start, $end);
+
+            foreach ($period as $date) {
+                // isoFormat('E') trả về 1 (Thứ 2) → 7 (Chủ nhật)
+                if ($days->contains($date->isoFormat('E'))) {
+                    $dayLearn[] = $date->format('Y-m-d');
+                }
+            }
+        }
+
+        // Tạo lớp học
+        $class = ClassModel::create([
+            'name' => $request->name,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date ?? null,
+            'course_id' => $request->course_id,
+            'total_lesson' => $request->total_lesson,
+            'lesson_per_week' => $request->lesson_per_week,
+            'min_student' => $request->min_student,
+            'max_student' => $request->max_student,
+            'teacher_id' => $request->teacher_id,
+            'status' => $request->status,
+            'schedule' => $schedule,                 // VD: "Thứ 2, Thứ 5"
+            'time_start' => $time_start,             // VD: "08:00"
+            'time_end' => $time_end,                 // VD: "09:30"
+            'day_learn' => implode(',', $dayLearn),  // VD: "2025-10-13,2025-10-16,..."
+            'note' => $request->note,
+        ]);
+
+        // Cập nhật class_id cho học viên đã chọn
+        if (!empty($request->students)) {
+            DB::table('contracts')
+                ->whereIn('student_id', $request->students)
+                ->update(['class_id' => $class->id]);
+        }
+
+        return redirect('admin/classes/class')->with('success', 'Thêm lớp học mới thành công!');
+    }
+
+    public function editClass($id)
+    {
+        $class = ClassModel::findOrFail($id);
+
+        // Format ngày cho input type="date"
+        if ($class->start_date) {
+            $class->start_date = \Carbon\Carbon::parse($class->start_date)->format('Y-m-d');
+        }
+        if ($class->end_date) {
+            $class->end_date = \Carbon\Carbon::parse($class->end_date)->format('Y-m-d');
+        }
+
+        $courses = Course::all();
+        $teachers = User::where('role', User::ROLE_TEACHER)->get();
+        $supporters = User::where('role', User::ROLE_SUPPOTER)->get();
+        $studentIdsInClass = Contract::where('class_id', $id)->distinct()->pluck('student_id')->toArray();
+        // $studentIdsInClass = Contract::where('class_id', $id)->get();
+
+        
+
+        // Học viên đã có trong lớp này
+        $selectedStudents = DB::table('contracts')
+            ->join('users', 'contracts.student_id', '=', 'users.id')
+            ->where('contracts.class_id', $id)
+            ->select('users.id', 'users.name', 'users.phone_number')
+            ->distinct()
+            ->get();
+            // dd($selectedStudents, $studentIdsInClass);
+        // Học viên chưa có lớp
+        $selectedIds = $selectedStudents->pluck('id'); // Lấy danh sách ID học viên đã có trong lớp
+
+        $students = DB::table('contracts')
+            ->join('users', 'contracts.student_id', '=', 'users.id')
+            ->join('courses', 'contracts.course_id', '=', 'courses.id')
+            ->where('courses.id', $class->course_id)
+            ->whereNotIn('users.id', $selectedIds)
+            ->select('users.id', 'users.name', 'users.phone_number', 'contracts.course_id', 'contracts.class_id')
+            ->get();
+
+        return view('admin.classes.edit-class', compact(
+            'class',
+            'courses',
+            'teachers',
+            'supporters',
+            'students',
+            'selectedStudents',
+            'studentIdsInClass'
+        ));
+    }
+
+    public function updateClass(Request $request, $id)
+    {
+        $class = ClassModel::findOrFail($id);
+
+        // Check tên lớp trùng (ngoại trừ lớp hiện tại)
+        $existClassName = ClassModel::where('name', $request->name)
+            ->where('id', '!=', $id)
+            ->exists();
+        if ($existClassName) {
+            return redirect()->back()->withInput()->with('error', 'Tên lớp đã tồn tại, vui lòng nhập tên khác!');
+        }
+
+        // Check ngày kết thúc phải sau ngày khai giảng
+        if ($request->end_date && $request->end_date < $request->start_date) {
+            return redirect()->back()->withInput()->with('error', 'Ngày kết thúc phải sau ngày khai giảng!');
+        }
+
+        // Xử lý time_start & time_end
+        $time_start = null;
+        $time_end = null;
+        if (!empty($request->time_range)) {
+            [$time_start, $time_end] = explode('-', $request->time_range);
+            $time_start = trim(str_replace('h', ':', $time_start));
+            $time_end = trim(str_replace('h', ':', $time_end));
+        }
+
+        // Xử lý schedule
+        $schedule = is_array($request->schedule)
+            ? implode(', ', $request->schedule)
+            : $request->schedule;
+
+        // Sinh danh sách ngày học
+        $dayLearn = [];
+        if ($request->start_date && $request->end_date && !empty($schedule)) {
+            $days = collect(explode(',', str_replace(['Thứ ', ' '], '', $schedule)));
+            $start = Carbon::parse($request->start_date);
+            $end = Carbon::parse($request->end_date);
+            $period = CarbonPeriod::create($start, $end);
+
+            foreach ($period as $date) {
+                if ($days->contains($date->isoFormat('E'))) {
+                    $dayLearn[] = $date->format('Y-m-d');
+                }
+            }
+        }
+
+        // Cập nhật lớp học
+        $class->update([
+            'name' => $request->name,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date ?? null,
+            'course_id' => $request->course_id,
+            'total_lesson' => $request->total_lesson,
+            'lesson_per_week' => $request->lesson_per_week,
+            'min_student' => $request->min_student,
+            'max_student' => $request->max_student,
+            'teacher_id' => $request->teacher_id,
+            'status' => $request->status,
+            'schedule' => $schedule,
+            'time_start' => $time_start,
+            'time_end' => $time_end,
+            'day_learn' => implode(',', $dayLearn),
+            'note' => $request->note,
+        ]);
+
+        // Cập nhật danh sách học viên
+        DB::table('contracts')->where('class_id', $class->id)->update(['class_id' => null]);
+        if (!empty($request->students)) {
+            DB::table('contracts')
+                ->whereIn('student_id', $request->students)
+                ->update(['class_id' => $class->id]);
+        }
+
+        return redirect('admin/classes/class')->with('success', 'Cập nhật lớp học thành công!');
+    }
+
+    public function deleteClass($id)
+    {
+        try {
+            $class = ClassModel::findOrFail($id);
+            $class->delete();
+
+            return redirect()->back()->with('success', 'Xóa lớp học thành công!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Không thể xóa lớp học. Vui lòng thử lại!');
+        }
+    }
+
+    public function getSchedule($id)
+    {
+        $class = DB::table('classes')
+            ->join('users as teachers', 'classes.teacher_id', '=', 'teachers.id')
+            ->select(
+                'classes.id',
+                'classes.name as class_name',
+                'teachers.name as teacher_name',
+                'classes.day_learn',
+                'classes.time_start',
+                'classes.time_end',
+                'classes.start_date',
+                'classes.end_date'
+            )
+            ->where('classes.id', $id)
+            ->first();
+
+        if (!$class) {
+            return redirect('admin/classes/class')->with('error', 'Không tìm thấy lớp học!');
+        }
+
+        // Parse danh sách ngày học thành mảng
+        $schedules = [];
+        $days = explode(',', $class->day_learn);
+        foreach ($days as $d) {
+            $date = trim($d);
+            if (!$date) continue;
+
+            $schedules[] = [
+                'date' => \Carbon\Carbon::parse($date)->toDateString(),
+                'class_name' => $class->class_name,
+                'teacher_name' => $class->teacher_name,
+                'time_start' => substr($class->time_start, 0, 5),
+                'time_end' => substr($class->time_end, 0, 5),
+            ];
+        }
+
+        return view('admin.classes.class-schedule', [
+            'class' => $class,
+            'schedules' => json_encode($schedules, JSON_UNESCAPED_UNICODE)
+        ]);
+    }
+
+    public function getAttendance($id, Request $request)
+    {
+        // === Lấy thông tin lớp học (thêm day_learn) ===
+        $class = DB::table('classes')
+            ->where('classes.id', $id)
+            ->select(
+                'classes.id',
+                'classes.name as class_name',
+                'classes.teacher_id',
+                'classes.supporter_id',
+                'classes.start_date',
+                'classes.end_date',
+                'classes.time_start',
+                'classes.time_end',
+                'classes.day_learn'      
+            )
+            ->first();
+
+        if (!$class) {
+            return redirect()->back()->with('error', 'Không tìm thấy lớp học!');
+        }
+
+        $teacher = DB::table('users')->where('id', $class->teacher_id)->value('name');
+        $supporter = DB::table('users')->where('id', $class->supporter_id)->value('name');
+
+        // === Lấy ngày được chọn từ lịch (hoặc mặc định hôm nay) ===
+        $selectedDate = $request->query('date', Carbon::now()->toDateString());
+
+        // === Lấy học viên trong lớp ===
+        $students = DB::table('contracts')
+            ->join('users', 'contracts.student_id', '=', 'users.id')
+            ->select('users.id', 'users.name', 'users.phone_number', 'users.email')
+            ->distinct()
+            ->where('contracts.class_id', $id)
+            ->get();
+
+        // === Lấy danh sách học viên đã điểm danh trong ngày được chọn (để tick checkbox) ===
+        $attendedStudents = DB::table('attendances')
+            ->where('class_id', $id)
+            ->whereDate('time_attendance', $selectedDate)
+            ->pluck('student_id')
+            ->toArray();
+
+        // === TÍNH SỐ BUỔI THEO LỊCH (tính đến ngày được chọn) ===
+        // day_learn được lưu dạng "YYYY-MM-DD,YYYY-MM-DD,..." (theo cách bạn lưu trước đó)
+        $scheduledDates = [];
+        if (!empty($class->day_learn)) {
+            $allDates = array_map('trim', explode(',', $class->day_learn));
+            foreach ($allDates as $d) {
+                if (empty($d)) continue;
+                // chuẩn hóa và so sánh dạng YYYY-MM-DD
+                try {
+                    $dt = Carbon::parse($d)->toDateString();
+                } catch (\Exception $e) {
+                    continue;
+                }
+                if ($dt <= $selectedDate) {
+                    $scheduledDates[] = $dt;
+                }
+            }
+        }
+        $totalLessionFromStart = count($scheduledDates); // tổng số buổi lớp đã diễn ra tới ngày chọn
+
+        // === Đếm số buổi mỗi học viên đã "có mặt" tính tới ngày được chọn (<= selectedDate) ===
+        $presentCounts = DB::table('attendances')
+            ->select('student_id', DB::raw('COUNT(*) as total'))
+            ->where('class_id', $id)
+            ->whereDate('time_attendance', '<=', $selectedDate)
+            ->groupBy('student_id')
+            ->pluck('total', 'student_id')   // trả về dạng [ student_id => total ]
+            ->toArray();
+
+        // === Tính số buổi vắng = tổng buổi theo lịch - buổi đã có mặt (>=0) ===
+        $absentCounts = [];
+        foreach ($students as $stu) {
+            $present = isset($presentCounts[$stu->id]) ? (int)$presentCounts[$stu->id] : 0;
+            $absent = max(0, $totalLessionFromStart - $present);
+            $absentCounts[$stu->id] = $absent;
+        }
+
+        // === Trả về view ===
+        return view('admin.classes.attendance', [
+            'class' => $class,
+            'teacherName' => $teacher,
+            'supporterName' => $supporter,
+            'students' => $students,
+            'attendedStudents' => $attendedStudents,
+            'attendanceDate' => $selectedDate,
+            'totalSessionsSoFar' => $totalLessionFromStart,
+            'presentCounts' => $presentCounts,
+            'absentCounts' => $absentCounts,
+        ]);
+    }
+
+    public function saveAttendance($id, Request $request)
+    {
+        $attendData = $request->input('attendance', []); // Mảng student_id => 1 nếu có mặt
+        $dateInput = $request->input('date_implementation'); // Lấy ngày từ form
+        $dateAttendance = \Carbon\Carbon::parse($dateInput)->toDateString(); // YYYY-MM-DD
+
+        if (empty($attendData)) {
+            return back()->with('error', 'Chưa chọn học viên nào để điểm danh!');
+        }
+
+        foreach ($attendData as $studentId => $isPresent) {
+            // Kiểm tra đã tồn tại điểm danh trong ngày đó chưa
+            $exists = \App\Models\Attendance::where('student_id', $studentId)
+                ->where('class_id', $id)
+                ->whereDate('time_attendance', $dateAttendance)
+                ->exists();
+
+            if (!$exists) {
+                \App\Models\Attendance::create([
+                    'student_id' => $studentId,
+                    'class_id' => $id,
+                    'time_attendance' => $dateAttendance, // lấy đúng ngày từ form
+                ]);
+            }
+        }
+
+        return redirect()->back()->with('success', 'Đã lưu điểm danh thành công!');
+    }
+}
