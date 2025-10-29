@@ -1,23 +1,12 @@
-@extends('index')
+@extends('admin.index')
 @section('header-content')
-    <div class="col-md-12">
-        <div class="row">
-            <div class="col-md-6 d-flex align-items-center justify-content-left">
-                <h3 style="padding-left: 30px;">Tạo mới hợp đồng</h3>
-            </div>
-
-            <div class="col-md-6">
-                <img src="{{ asset('images/avt.png') }}" alt=""
-                    style="float: right; width: 50px; height: 50px; margin-top: 4px;" class="justify-content-center">
-            </div>
-        </div>
-    </div>
-    {{-- <p>Đây là trang khóa học.</p> --}}
+    Hợp đồng
 @endsection
+
 @section('content')
     <div class="col-md-12 d-flex justify-content-center">
         <div class="w-90"
-            style="background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+            style="background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
             <div class="col-md-12">
                 <div class="row">
                     <div class="col-md-4">
@@ -25,291 +14,351 @@
                     </div>
                     <div class="col-md-8">
                         <div class="d-flex justify-content-end">
-                            <a href="{{ url('/khoahoc') }}" class="btn btn-light"> <i class="fa-solid fa-arrow-left"></i>
-                                Quay lại</a>
-
-                            <a href="#" class="btn btn-primary"><i class="fa-solid fa-check"></i> Lưu</a>
+                            <a id="backBtn" class="btn btn-light"><i class="fa-solid fa-arrow-left"></i> Quay lại</a>
+                            <button class="btn btn-primary" id="saveBtn">
+                                <i class="fa-solid fa-check"></i> Lưu
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
-    <div class="col-md-12  d-flex justify-content-center">
-        <div class="w-90"
-            style="background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); margin-top:20px;">
 
-            <!-- Form tạo mới khóa học -->
-            <div class="col-md-12">
-                <div class="row">
-                    <div class="col-md-8">
-                        <div class="col-md-12">
+    <div class="col-md-12 d-flex justify-content-center">
+        <form action="{{ url('/admin/contracts/add') }}" method="post" id="contractForm">
+            @csrf
+            <div class="w-90"
+                style="background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top:20px;">
+                <div class="col-md-12">
+                    <div class="row">
+                        {{-- ===== THÔNG TIN HÓA ĐƠN ===== --}}
+                        <div class="col-md-8">
                             <h3>Thông tin hóa đơn</h3>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label for="ngay_tao" class="form-label">Ngày tạo</label>
-                                    <input type="date" class="form-control" id="ngay_tao" name="ngay_tao">
+                                    <label for="ngay_tao" class="form-label">Ngày tạo <span
+                                            class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="ngay_tao" name="ngay_tao" readonly
+                                        required>
                                 </div>
-                                <div class="col-md-6 mb-3">
 
-                                    <label for="trang_thai" class="form-label">Trạng thái</label>
-                                    <select class="form-select" id="trang_thai" name="trang_thai">
-                                        <option value="1">Đã đặt cọc</option>
-                                        <option value="2">Chưa thanh toán</option>
-                                        <option value="3">Đã thanh toán đủ</option>
+                                <div class="col-md-6 mb-3">
+                                    <label for="ngon_ngu" class="form-label">Ngôn ngữ <span
+                                            class="text-danger">*</span></label>
+                                    <select class="form-select" id="ngon_ngu" name="ngon_ngu" required>
+                                        @foreach ($languages as $language)
+                                            <option value="{{ $language->id }}"
+                                                {{ $certificate->language_id == $language->id ? 'selected' : '' }}>
+                                                {{ $language->name }}
+                                            </option>
+                                        @endforeach
                                     </select>
+                                </div>
 
-                                </div>
-                                {{-- -thêm ngôn ngữ và chứng chỉ --}}
                                 <div class="col-md-6 mb-3">
-                                    <label for="ngon_ngu" class="form-label">Ngôn ngữ</label>
-                                    <select class="form-select" id="ngon_ngu" name="ngon_ngu">
-                                        <option value="1">Tiếng trung</option>
-                                        <option value="2">Hàn</option>
+                                    <label for="chung_chi" class="form-label">Chứng chỉ <span
+                                            class="text-danger">*</span></label>
+                                    <select class="form-select" id="chung_chi" name="chung_chi" required>
+                                        @foreach ($certificates as $certificateItem)
+                                            <option value="{{ $certificateItem->id }}"
+                                                data-language="{{ $certificateItem->language_id }}"
+                                                {{ $certificate->id == $certificateItem->id ? 'selected' : '' }}>
+                                                {{ $certificateItem->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
 
-                                    </select>
-                                </div>
-                                {{-- -chung chi --}}
                                 <div class="col-md-6 mb-3">
-                                    <label for="chung_chi" class="form-label">Chung chi</label>
-                                    <select class="form-select" id="chung_chi" name="chung_chi">
-                                        <option value="1">TOEIC</option>
-                                        <option value="2">IELTS</option>
+                                    <label for="khoa_hoc" class="form-label">Khóa học <span
+                                            class="text-danger">*</span></label>
+                                    <select class="form-select" id="khoa_hoc" name="khoa_hoc" required>
+                                        @foreach ($courses as $c)
+                                            <option value="{{ $c->id }}" data-certificate="{{ $c->certificate_id }}"
+                                                data-total="{{ $c->total_lesson }}" data-price="{{ $c->price }}"
+                                                data-level="{{ $c->level_id }}"
+                                                {{ $course->id == $c->id ? 'selected' : '' }}>
+                                                {{ $c->name }}
+                                            </option>
+                                        @endforeach
                                     </select>
                                 </div>
-                                {{-- khóa học --}}
-                                <div class="col-md-6 mb-3">
-                                    <label for="khoa_hoc" class="form-label">Khóa học</label>
-                                    <select class="form-select" id="khoa_hoc" name="khoa_hoc">
-                                        <option value="1">Khóa học 1</option>
-                                        <option value="2">Khóa học 2</option>
-                                        <option value="3">Khóa học 3</option>
-                                    </select>
-                                </div>
-                                {{-- Thời lượng học --}}
+
                                 <div class="col-md-6 mb-3">
                                     <label for="thoi_luong_hoc" class="form-label">Thời lượng học</label>
-                                    <input type="text" class="form-control" id="thoi_luong_hoc"
-                                        placeholder="Nhập thời lượng học">
+                                    <input type="text" class="form-control" id="thoi_luong_hoc" readonly
+                                        value="{{ $course->total_lesson }}">
                                 </div>
-                                {{-- Tổng tiền --}}
+
                                 <div class="col-md-6 mb-3">
                                     <label for="tong_tien" class="form-label">Tổng tiền ($)</label>
-                                    <input type="number" class="form-control" id="tong_tien" placeholder="Nhập tổng tiền">
+                                    <input type="number" class="form-control" id="tong_tien" readonly
+                                        value="{{ $course->price }}">
                                 </div>
-                                {{-- khuyến mại --}}
+
                                 <div class="col-md-6 mb-3">
                                     <label for="khuyen_mai" class="form-label">Khuyến mại ($)</label>
-                                    <input type="number" class="form-control" id="khuyen_mai"
-                                        placeholder="Nhập khuyến mại">
+                                    <input type="number" class="form-control" id="khuyen_mai" value="0">
                                 </div>
-                                {{-- Học phí thực đóng --}}
-                                <div class="col-md-6 mb-3">
-                                    <label for="hoc_phi_thuc_dong" class="form-label">Học phí thực đóng ($)</label>
-                                    <input type="number" class="form-control" id="hoc_phi_thuc_dong"
-                                        placeholder="Nhập học phí thực đóng">
-                                </div>
-                                {{-- Hình thức thanh toán --}}
-                                <div class="col-md-6 mb-3">
-                                    <label for="hinh_thuc_thanh_toan" class="form-label">Hình thức thanh toán</label>
-                                    <select class="form-select" id="hinh_thuc_thanh_toan" name="hinh_thuc_thanh_toan">
-                                        <option value="1">Full phí</option>
-                                        <option value="2">Trả góp</option>
 
-                                    </select>
+                                <div class="col-md-6 mb-3">
+                                    <label for="hoc_phi_thuc_dong" class="form-label">Học phí thực đóng ($) <span
+                                            class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="hoc_phi_thuc_dong" name="total_value"
+                                        value="{{ $course->price }}" readonly required>
                                 </div>
-                                {{-- phương thức thanh toán --}}
-                                {{-- <div class="col-md-6 mb-3">
-                                    <label for="phuong_thuc_thanh_toan" class="form-label">Phương thức thanh toán</label>
-                                    <select class="form-select" id="phuong_thuc_thanh_toan"
-                                        name="phuong_thuc_thanh_toan">
-                                        <option value="1">Chuyển khoản</option>
-                                        <option value="2">Tiền mặt</option>
-                                    </select>
-                                </div> --}}
 
+                                <div class="col-md-6 mb-3">
+                                    <label for="level_hien_tai" class="form-label">Level</label>
+                                    <input type="text" class="form-control" id="level_hien_tai" name="level_hien_tai"
+                                        value="{{ $levels->firstWhere('id', $course->level_id)->name ?? '' }}" readonly>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="col-md-12">
-                            <div class="row">
-                                <div class="col-md-1"></div>
-                                <div class="col-md-11">
-                                    <h3>Thông tin khách</h3>
-                                    <div class="col-md-12">
-                                        <div class="row">
-                                            {{-- Họ tên --}}
-                                            <div class="col-md-12 mb-3">
-                                                <label for="ho_ten" class="form-label">Họ tên</label>
-                                                <input type="text" class="form-control" id="ho_ten"
-                                                    placeholder="Nhập họ tên">
-                                            </div>
-                                            {{-- Số điện thoại --}}
-                                            <div class="col-md-12 mb-3">
-                                                <label for="so_dien_thoai" class="form-label">Số điện thoại</label>
-                                                <input type="text" class="form-control" id="so_dien_thoai"
-                                                    placeholder="Nhập số điện thoại">
-                                            </div>
-                                            {{-- Email --}}
-                                            <div class="col-md-12 mb-3">
-                                                <label for="email" class="form-label">Email</label>
-                                                <input type="email" class="form-control" id="email"
-                                                    placeholder="Nhập email">
-                                            </div>
 
-                                        </div>
+                        {{-- ===== THÔNG TIN KHÁCH ===== --}}
+                        <div class="col-md-4">
+                            <h3>Thông tin khách</h3>
+                            <div class="col-md-12">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3 position-relative">
+                                        <label for="ho_ten" class="form-label">Họ tên <span
+                                                class="text-danger">*</span></label>
+                                        <input type="hidden" name="studentId" id="studentId"
+                                            value="{{ $student->id }}">
+                                        <input type="text" class="form-control" id="ho_ten" name="ho_ten"
+                                            placeholder="Nhập họ tên" value="{{ $student->name }}" required>
+                                        <div id="suggestions" class="list-group position-absolute w-100"
+                                            style="z-index:1000;display:none;max-height:200px;overflow-y:auto;"></div>
+                                    </div>
+
+                                    <div class="col-md-12 mb-3">
+                                        <label for="so_dien_thoai" class="form-label">Số điện thoại <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="so_dien_thoai"
+                                            name="so_dien_thoai" value="{{ $student->phone_number }}" required>
+                                    </div>
+
+                                    <div class="col-md-12 mb-3">
+                                        <label for="email" class="form-label">Email <span
+                                                class="text-danger">*</span></label>
+                                        <input type="email" class="form-control" id="email" name="email"
+                                            value="{{ $student->email }}" required>
+                                    </div>
+
+                                    <div class="col-md-12 mb-3">
+                                        <label for="note" class="form-label">Ghi chú</label>
+                                        <textarea class="form-control" id="note" name="note" rows="3"></textarea>
                                     </div>
                                 </div>
                             </div>
                         </div>
+
                     </div>
                 </div>
-
-
             </div>
-
-
-
-        </div>
+        </form>
 
     </div>
 
-    <div class="col-md-12 d-flex justify-content-center" style="margin-top: 30px;">
-        <div class="w-90"
-            style="background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
-            <div class="col-md-12 mt-3">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h3>Thông tin phiếu thu</h3>
-                    </div>
+    {{-- ================== SCRIPT ================== --}}
+    <script>
+        document.getElementById('saveBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            const form = document.getElementById('contractForm');
+            const btn = document.getElementById('saveBtn');
 
-                </div>
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>
-                                STT
-                            </th>
-                            <th>Lần thu</th>
-                            <th>Ngày thu</th>
-                            <th>Số tiền</th>
-                            <th>Phương thức thanh toán</th>
-                            <th>Ảnh</th>
-                            <th>Nội dung</th>
-                            <th>Hành động</th>
+            // Nếu form hợp lệ thì disable nút và gửi đi
+            if (form.checkValidity()) {
+                btn.disabled = true; // chặn bấm lại
+                btn.innerHTML = 'Đang xử lý... ⏳'; // đổi text cho người dùng biết
+                form.submit();
+            } else {
+                form.reportValidity(); // Hiện thông báo lỗi HTML5
+            }
+        });
+    </script>
 
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>1</td>
-                            <td>1</td>
-                            <td>15/09/2023</td>
-                            <td>1000000</td>
-                            <td>Chuyển khoản</td>
-                            <td>anh 1</td>
-                            <td>anh 2</td>
-                            <td>
-                                <a href="#" class="btn btn-sm btn-warning"><i
-                                        class="fa-solid fa-pen-to-square"></i>
-                                    Sửa</a>
-                                <a href="#" class="btn btn-sm btn-danger"><i class="fa-solid fa-trash"></i> Xóa</a>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div class="col-md-12">
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // ===== DỮ LIỆU TỪ SERVER =====
+            const students = @json($students);
+            const levels = @json($levels);
 
-                    <!-- Nút thêm phiếu thu -->
-                    <div class="text-center mb-3">
-                        <a href="#" id="btnThemPhieu" class="btn btn-sm btn-success text-center">
-                            <i class="fa-solid fa-plus"></i> Thêm phiếu thu
-                        </a>
-                    </div>
+            // ===== FORMAT NGÀY =====
+            const ngayTaoInput = document.getElementById("ngay_tao");
+            const date = new Date();
+            ngayTaoInput.value =
+                `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`;
+            ngayTaoInput.readOnly = true;
 
-                    <!-- Form phiếu thu (ẩn ban đầu) -->
-                    <div id="formPhieuThu" class=" col-md-12 " style="display: none;">
-                        <div class="row">
-                            {{-- Ngày thu --}}
-                            <div class="col-md-4 mb-3">
-                                <label for="ngay_thu" class="form-label">Ngày thu</label>
-                                <input type="date" class="form-control" id="ngay_thu" name="ngay_thu">
-                            </div>
+            // ===== HỌC VIÊN =====
+            const inputName = document.getElementById("ho_ten");
+            const inputPhone = document.getElementById("so_dien_thoai");
+            const inputEmail = document.getElementById("email");
+            const inputStudentId = document.getElementById("studentId");
+            const suggestionBox = document.getElementById("suggestions");
 
-                            {{-- Phương thức thanh toán --}}
-                            <div class="col-md-4 mb-3">
-                                <label for="phuong_thuc_thanh_toan" class="form-label">Phương thức thanh toán</label>
-                                <select class="form-select" id="phuong_thuc_thanh_toan" name="phuong_thuc_thanh_toan">
-                                    <option value="1">Chuyển khoản</option>
-                                    <option value="2">Tiền mặt</option>
-                                </select>
-                            </div>
+            function searchStudents(query) {
+                if (!query) return [];
+                query = query.toLowerCase();
+                return students.filter(stu =>
+                    (stu.name && stu.name.toLowerCase().includes(query)) ||
+                    (stu.phone_number && stu.phone_number.includes(query)) ||
+                    (stu.email && stu.email.toLowerCase().includes(query))
+                );
+            }
 
-                            {{-- Số tiền --}}
-                            <div class="col-md-4 mb-3">
-                                <label for="so_tien" class="form-label">Số tiền</label>
-                                <input type="number" class="form-control" id="so_tien" name="so_tien">
-                            </div>
-
-                            {{-- Ảnh chuyển khoản --}}
-                            <div class="col-md-6 mb-3">
-                                <label for="anh_chuyen_khoan" class="form-label">Ảnh chuyển khoản</label>
-
-                                <!-- Ảnh xem trước -->
-                                <img id="preview" src="" alt="Chưa có ảnh" class="img-fluid mb-2"
-                                    style="max-height: 200px; display:none;">
-
-                                <!-- Input chọn file -->
-                                <input type="file" class="form-control" id="anh_chuyen_khoan" name="anh_chuyen_khoan"
-                                    accept="image/*">
-                            </div>
-
-                            {{-- Nội dung --}}
-                            <div class="col-md-6 mb-3">
-                                <label for="noi_dung" class="form-label">Nội dung</label>
-                                <textarea id="noi_dung" name="noi_dung" class="form-control" rows="5"></textarea>
-                            </div>
-
-                            <div class="text-center">
-                                <a href="#" class="btn btn-sm btn-success text-center">
-                                    <i class="fa-solid fa-save"></i> Lưu
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Script xử lý hiển thị form và preview ảnh -->
-                <script>
-                    // Khi nhấn "Thêm phiếu thu" thì hiện form
-                    document.getElementById('btnThemPhieu').addEventListener('click', function(e) {
+            function showSuggestions(results) {
+                suggestionBox.innerHTML = "";
+                if (results.length === 0) {
+                    suggestionBox.style.display = "none";
+                    return;
+                }
+                results.forEach(stu => {
+                    const item = document.createElement("a");
+                    item.href = "#";
+                    item.className = "list-group-item list-group-item-action";
+                    item.innerHTML =
+                        `<strong>${stu.name}</strong> - ${stu.phone_number ?? "N/A"}<br><small>${stu.email ?? ""}</small>`;
+                    item.addEventListener("mousedown", e => {
                         e.preventDefault();
-                        const form = document.getElementById('formPhieuThu');
-
-                        // Hiện / ẩn form luân phiên
-                        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+                        fillStudentInfo(stu);
+                        suggestionBox.style.display = "none";
                     });
+                    suggestionBox.appendChild(item);
+                });
+                suggestionBox.style.display = "block";
+            }
 
-                    // Hiển thị ảnh xem trước khi chọn file
-                    const input = document.getElementById("anh_chuyen_khoan");
-                    const preview = document.getElementById("preview");
+            function fillStudentInfo(stu) {
+                inputName.value = stu.name ?? "";
+                inputPhone.value = stu.phone_number ?? "";
+                inputEmail.value = stu.email ?? "";
+                inputStudentId.value = stu.id ?? "";
+            }
 
-                    input.addEventListener("change", function() {
-                        const file = this.files[0];
-                        if (file) {
-                            const reader = new FileReader();
-                            reader.onload = function(e) {
-                                preview.src = e.target.result;
-                                preview.style.display = "block";
-                            };
-                            reader.readAsDataURL(file);
-                        }
-                    });
-                </script>
+            [inputName, inputPhone, inputEmail].forEach(input => {
+                input.addEventListener("input", e => {
+                    const results = searchStudents(e.target.value.trim());
+                    showSuggestions(results);
+                });
+            });
 
-            </div>
-        </div>
-    </div>
+            document.addEventListener("click", e => {
+                if (!suggestionBox.contains(e.target) &&
+                    ![inputName, inputPhone, inputEmail].includes(e.target)) {
+                    suggestionBox.style.display = "none";
+                }
+            });
+
+            // ===== KHÓA HỌC – CHỨNG CHỈ – NGÔN NGỮ =====
+            const langSelect = document.getElementById("ngon_ngu");
+            const certSelect = document.getElementById("chung_chi");
+            const courseSelect = document.getElementById("khoa_hoc");
+            const thoiLuongInput = document.getElementById("thoi_luong_hoc");
+            const tongTienInput = document.getElementById("tong_tien");
+            const khuyenMaiInput = document.getElementById("khuyen_mai");
+            const hocPhiThucDongInput = document.getElementById("hoc_phi_thuc_dong");
+            const levelInput = document.getElementById("level_hien_tai");
+
+            const allCertificates = Array.from(certSelect.options).map(opt => ({
+                id: opt.value,
+                text: opt.text,
+                language: opt.dataset.language
+            }));
+
+            const allCourses = Array.from(courseSelect.options).map(opt => ({
+                id: opt.value,
+                text: opt.text,
+                certificate: opt.dataset.certificate,
+                total: opt.dataset.total,
+                price: opt.dataset.price,
+                level: opt.dataset.level
+            }));
+
+            function fillCertificates(languageId) {
+                certSelect.innerHTML = "";
+                allCertificates.forEach(c => {
+                    const opt = document.createElement("option");
+                    opt.value = c.id;
+                    opt.text = c.text;
+                    opt.dataset.language = c.language;
+                    if (c.language === languageId || languageId === "") {
+                        certSelect.appendChild(opt);
+                    }
+                });
+            }
+
+            function fillCourses(certificateId) {
+                courseSelect.innerHTML = "";
+                allCourses.forEach(c => {
+                    const opt = document.createElement("option");
+                    opt.value = c.id;
+                    opt.text = c.text;
+                    opt.dataset.certificate = c.certificate;
+                    opt.dataset.total = c.total;
+                    opt.dataset.price = c.price;
+                    opt.dataset.level = c.level;
+                    if (c.certificate === certificateId || certificateId === "") {
+                        courseSelect.appendChild(opt);
+                    }
+                });
+            }
+
+            function updateCourseInfo(courseOpt) {
+                if (!courseOpt) return;
+                thoiLuongInput.value = courseOpt.dataset.total || 0;
+                tongTienInput.value = courseOpt.dataset.price || 0;
+                khuyenMaiInput.max = courseOpt.dataset.price || 0;
+                hocPhiThucDongInput.value = parseFloat(courseOpt.dataset.price || 0) - (parseFloat(khuyenMaiInput
+                    .value) || 0);
+                const levelObj = levels.find(l => l.id == courseOpt.dataset.level);
+                levelInput.value = levelObj ? levelObj.name : "";
+            }
+
+            langSelect.addEventListener("change", function() {
+                const langId = this.value;
+                fillCertificates(langId);
+                const firstCert = certSelect.options[0]?.value || "";
+                fillCourses(firstCert);
+                updateCourseInfo(courseSelect.selectedOptions[0]);
+                khuyenMaiInput.value = 0;
+            });
+
+            certSelect.addEventListener("change", function() {
+                const certId = this.value;
+                fillCourses(certId);
+                updateCourseInfo(courseSelect.selectedOptions[0]);
+            });
+
+            courseSelect.addEventListener("change", function() {
+                updateCourseInfo(this.selectedOptions[0]);
+            });
+
+            khuyenMaiInput.addEventListener("input", function() {
+                let km = parseFloat(this.value) || 0;
+                if (km < 0) km = 0;
+                if (km > parseFloat(tongTienInput.value)) km = parseFloat(tongTienInput.value);
+                this.value = km;
+                hocPhiThucDongInput.value = parseFloat(tongTienInput.value) - km;
+            });
+
+            // ===== KHỞI TẠO BAN ĐẦU =====
+            (function init() {
+                const selectedCourse = courseSelect.selectedOptions[0];
+                const certId = selectedCourse ? selectedCourse.dataset.certificate : "";
+                const cert = allCertificates.find(c => c.id === certId);
+                const langId = cert ? cert.language : "";
+
+                if (langId) langSelect.value = langId;
+                fillCertificates(langId);
+                if (certId) certSelect.value = certId;
+                fillCourses(certId);
+                if (selectedCourse) courseSelect.value = selectedCourse.value;
+                updateCourseInfo(selectedCourse);
+            })();
+        });
+    </script>
 @endsection
