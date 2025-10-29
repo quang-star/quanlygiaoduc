@@ -11,7 +11,20 @@ class Course extends Model
 
     protected $table = 'courses';
 
-    protected $fillable = ['code', 'name', 'language_id', 'certificate_id', 'level_id'];
+    protected $fillable = [
+        'code',
+        'name',
+        'language_id',
+        'certificate_id',
+        'level_id',
+        'price',
+        'total_lesson',
+        'lesson_per_week',
+        'max_student',
+        'min_student',
+        'description',
+    ];
+
 
     public function language()
     {
