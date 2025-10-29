@@ -25,7 +25,7 @@ class Certificate extends Model
 
     public function entranceExams()
     {
-        return $this->hasMany(EntranceExam::class);
+        return $this->hasOne(EntranceExam::class, 'certificate_id');
     }
 
     public function studentProfiles()
