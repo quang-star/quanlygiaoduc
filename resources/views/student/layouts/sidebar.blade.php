@@ -127,24 +127,66 @@
     }
 </style>
 
-<script>
-    const toggleBtn = document.getElementById('toggleContainer');
-    const sidebar = document.getElementById('sidebar');
 
-    toggleBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('collapsed');
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const sidebar = document.getElementById("sidebar");
+    const toggleContainer = document.getElementById("toggleContainer");
+    const submenus = document.querySelectorAll(".submenu");
+    const currentPath = window.location.pathname;
+
+    // === 1️⃣ Sidebar collapsed ===
+    let isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
+    sidebar.classList.toggle("collapsed", isCollapsed);
+
+    toggleContainer.addEventListener("click", () => {
+        isCollapsed = !isCollapsed;
+        sidebar.classList.toggle("collapsed", isCollapsed);
+        localStorage.setItem("sidebarCollapsed", isCollapsed);
     });
 
-    function toggleDropdown(e) {
-        e.preventDefault();
-        const parentLi = e.target.closest('li');
-        const submenu = parentLi.querySelector('.submenu');
+    // === 2️⃣ Submenu logic ===
+    const openSubmenuId = localStorage.getItem("openSubmenuId");
 
-        // Đóng các submenu khác
-        document.querySelectorAll('.submenu').forEach(menu => {
-            if (menu !== submenu) menu.classList.remove('open');
+    submenus.forEach((submenu, i) => {
+        if (!submenu.id) submenu.id = `submenu-${i}`;
+        if (submenu.id === openSubmenuId) submenu.classList.add("open");
+
+        const parentLink = submenu.closest("li").querySelector(".nav-link[href='#']");
+        parentLink.addEventListener("click", (e) => {
+            e.preventDefault();
+
+            const isOpen = submenu.classList.toggle("open");
+
+            // Đóng tất cả submenu khác
+            submenus.forEach(other => {
+                if (other !== submenu) other.classList.remove("open");
+            });
+
+            localStorage.setItem("openSubmenuId", isOpen ? submenu.id : "");
         });
+    });
 
-        submenu.classList.toggle('open');
-    }
+    // === 3️⃣ Highlight link hiện tại ===
+    const links = document.querySelectorAll(".nav-link[href]:not([href='#'])");
+    links.forEach(link => {
+        const linkPath = new URL(link.href).pathname;
+        if (linkPath === currentPath) {
+            link.classList.add("active");
+            const submenu = link.closest(".submenu");
+            if (submenu) {
+                submenu.classList.add("open");
+                localStorage.setItem("openSubmenuId", submenu.id);
+            }
+        } else {
+            link.classList.remove("active");
+        }
+
+        // 💥 Nếu click vào link bình thường => đóng tất cả submenu
+        link.addEventListener("click", () => {
+            submenus.forEach(sub => sub.classList.remove("open"));
+            localStorage.setItem("openSubmenuId", ""); // reset lưu submenu
+        });
+    });
+});
 </script>
