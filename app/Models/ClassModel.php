@@ -10,6 +10,10 @@ class ClassModel extends Model
     use HasFactory;
 
     protected $table = 'classes';
+    const SCHEDULED = 0;
+    const RUNNING = 1;
+    const COMPLETED = 2;
+    const CANCELLED = 3;
 
     protected $fillable = [
         'name', 'teacher_id', 'course_id', 'end_date', 'start_date',
@@ -22,6 +26,11 @@ class ClassModel extends Model
         return $this->belongsTo(User::class, 'teacher_id');
     }
 
+    public function studentProfiles()
+    {
+        return $this->hasMany(StudentProfile::class, 'class_id');
+    }
+
     public function course()
     {
         return $this->belongsTo(Course::class);
@@ -30,6 +39,11 @@ class ClassModel extends Model
     public function attendances()
     {
         return $this->hasMany(Attendance::class, 'class_id');
+    }
+
+    public function certificates()
+    {
+        return $this->hasMany(Certificate::class, 'class_id');
     }
 
     public function contracts()
