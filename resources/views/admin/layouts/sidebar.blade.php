@@ -1,6 +1,7 @@
 <div class="sidebar" id="sidebar">
     <div id="toggleContainer">
-        <img class="toggle-btn" id="toggleBtn" src="{{ asset(setting('logo', 'images/default-logo.png')) }}" alt="" height="100" width="100">
+        <img class="toggle-btn" id="toggleBtn" src="{{ asset(setting('logo', 'images/default-logo.png')) }}" alt=""
+            height="100" width="100">
     </div>
 
     <nav class="nav flex-column">
@@ -20,14 +21,14 @@
             </a>
             <ul class="submenu list-unstyled">
                 <li><a class="nav-link sub-link" href="{{ url('/admin/students/index') }}">
-                    <i class="fa-regular fa-address-book"></i> Danh sách học viên
-                </a></li>
+                        <i class="fa-regular fa-address-book"></i> Danh sách học viên
+                    </a></li>
                 <li><a class="nav-link sub-link" href="{{ url('/admin/students/wait-class') }}">
-                    <i class="fa-solid fa-clock-rotate-left"></i> Học viên chờ xếp lớp
-                </a></li>
+                        <i class="fa-solid fa-clock-rotate-left"></i> Học viên chờ xếp lớp
+                    </a></li>
                 <li><a class="nav-link sub-link" href="{{ url('/admin/students/wait-test') }}">
-                    <i class="fa-solid fa-clipboard-question"></i> Học viên chờ test
-                </a></li>
+                        <i class="fa-solid fa-clipboard-question"></i> Học viên chờ test
+                    </a></li>
             </ul>
         </li>
 
@@ -42,7 +43,7 @@
             <span class="link-text">Giảng viên</span>
         </a> --}}
 
-          <li class="nav-item">
+        <li class="nav-item">
             <a class="nav-link" href="#" onclick="toggleDropdown(event)">
                 <i class="fa-solid fa-user-graduate"></i>
                 <span class="link-text">Giảng viên</span>
@@ -50,12 +51,12 @@
             </a>
             <ul class="submenu list-unstyled">
                 <li><a class="nav-link sub-link" href="{{ url('/admin/teachers/index') }}">
-                    <i class="fa-regular fa-address-book"></i> Danh sách giảng viên
-                </a></li>
+                        <i class="fa-regular fa-address-book"></i> Danh sách giảng viên
+                    </a></li>
                 <li><a class="nav-link sub-link" href="{{ url('/admin/teachers/salary') }}">
-                    <i class="fa-solid fa-clock-rotate-left"></i> Lương giảng viên
-                </a></li>
-                
+                        <i class="fa-solid fa-clock-rotate-left"></i> Lương giảng viên
+                    </a></li>
+
             </ul>
         </li>
 
@@ -71,7 +72,7 @@
             <span class="link-text">Lớp học</span>
         </a>
 
-       
+
 
 
 
@@ -84,20 +85,20 @@
             </a>
             <ul class="submenu list-unstyled">
                 <li><a class="nav-link sub-link" href="{{ url('/admin/settings/informations/index') }}">
-                    <i class="fa-solid fa-sliders"></i> Cấu hình chung
-                </a></li>
+                        <i class="fa-solid fa-sliders"></i> Cấu hình chung
+                    </a></li>
                 <li><a class="nav-link sub-link" href="{{ url('/admin/settings/languages/index') }}">
-                    <i class="fa-solid fa-language"></i> Ngôn ngữ
-                </a></li>
+                        <i class="fa-solid fa-language"></i> Ngôn ngữ
+                    </a></li>
                 <li><a class="nav-link sub-link" href="{{ url('/admin/settings/certificates/index') }}">
-                    <i class="fa-solid fa-certificate"></i> Chứng chỉ
-                </a></li>
+                        <i class="fa-solid fa-certificate"></i> Chứng chỉ
+                    </a></li>
                 <li><a class="nav-link sub-link" href="{{ url('/admin/settings/levels/index') }}">
-                    <i class="fa-solid fa-layer-group"></i> Level
-                </a></li>
+                        <i class="fa-solid fa-layer-group"></i> Level
+                    </a></li>
                 <li><a class="nav-link sub-link" href="{{ url('/admin/settings/shifts/index') }}">
-                    <i class="fa-solid fa-concierge-bell"></i> Ca học
-                </a></li>
+                        <i class="fa-solid fa-concierge-bell"></i> Ca học
+                    </a></li>
             </ul>
         </li>
     </nav>
@@ -116,6 +117,7 @@
         align-items: center;
         padding-top: 20px;
     }
+
     .submenu {
         padding-left: 20px;
     }
@@ -204,29 +206,72 @@
         transition: transform 0.3s;
     }
 
-    .submenu.open + .toggle-icon {
+    .submenu.open+.toggle-icon {
         transform: rotate(180deg);
     }
 </style>
 
 <script>
-    const toggleBtn = document.getElementById('toggleContainer');
-    const sidebar = document.getElementById('sidebar');
+document.addEventListener("DOMContentLoaded", () => {
+    const sidebar = document.getElementById("sidebar");
+    const toggleContainer = document.getElementById("toggleContainer");
+    const submenus = document.querySelectorAll(".submenu");
+    const currentPath = window.location.pathname;
 
-    toggleBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('collapsed');
+    // === 1️⃣ Sidebar collapsed ===
+    let isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
+    sidebar.classList.toggle("collapsed", isCollapsed);
+
+    toggleContainer.addEventListener("click", () => {
+        isCollapsed = !isCollapsed;
+        sidebar.classList.toggle("collapsed", isCollapsed);
+        localStorage.setItem("sidebarCollapsed", isCollapsed);
     });
 
-    function toggleDropdown(e) {
-        e.preventDefault();
-        const parentLi = e.target.closest('li');
-        const submenu = parentLi.querySelector('.submenu');
+    // === 2️⃣ Submenu logic ===
+    const openSubmenuId = localStorage.getItem("openSubmenuId");
 
-        // Đóng các submenu khác
-        document.querySelectorAll('.submenu').forEach(menu => {
-            if (menu !== submenu) menu.classList.remove('open');
+    submenus.forEach((submenu, i) => {
+        if (!submenu.id) submenu.id = `submenu-${i}`;
+        if (submenu.id === openSubmenuId) submenu.classList.add("open");
+
+        const parentLink = submenu.closest("li").querySelector(".nav-link[href='#']");
+        parentLink.addEventListener("click", (e) => {
+            e.preventDefault();
+
+            const isOpen = submenu.classList.toggle("open");
+
+            // Đóng tất cả submenu khác
+            submenus.forEach(other => {
+                if (other !== submenu) other.classList.remove("open");
+            });
+
+            localStorage.setItem("openSubmenuId", isOpen ? submenu.id : "");
         });
+    });
 
-        submenu.classList.toggle('open');
-    }
+    // === 3️⃣ Highlight link hiện tại ===
+    const links = document.querySelectorAll(".nav-link[href]:not([href='#'])");
+    links.forEach(link => {
+        const linkPath = new URL(link.href).pathname;
+        if (linkPath === currentPath) {
+            link.classList.add("active");
+            const submenu = link.closest(".submenu");
+            if (submenu) {
+                submenu.classList.add("open");
+                localStorage.setItem("openSubmenuId", submenu.id);
+            }
+        } else {
+            link.classList.remove("active");
+        }
+
+        // 💥 Nếu click vào link bình thường => đóng tất cả submenu
+        link.addEventListener("click", () => {
+            submenus.forEach(sub => sub.classList.remove("open"));
+            localStorage.setItem("openSubmenuId", ""); // reset lưu submenu
+        });
+    });
+});
 </script>
+
+
