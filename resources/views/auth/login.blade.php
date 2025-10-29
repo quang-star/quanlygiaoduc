@@ -152,22 +152,33 @@
   <div class="wrapper">
     <form action="{{ url('/login') }}" method="post">
         @csrf
+          @if (session('error'))
+            <div style="background-color: rgba(255,0,0,0.2); border: 1px solid red; color: #fff; padding: 10px; border-radius: 5px; text-align:center; margin-bottom:15px;">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        @if (session('success'))
+            <div style="background-color: rgba(0,255,0,0.2); border: 1px solid limegreen; color: #fff; padding: 10px; border-radius: 5px; text-align:center; margin-bottom:15px;">
+                {{ session('success') }}
+            </div>
+        @endif
       <h2>Đăng nhập</h2>
 
       <div class="input-field">
-        <input type="text" name="email" placeholder=" " required />
+        <input type="text" name="email" placeholder=""  required />
         <label>Email đăng nhập</label>
       </div>
 
       <div class="input-field">
-        <input type="password" name="password" placeholder=" " required />
+        <input type="password" name="password"  placeholder=" " required />
         <label>Mật khẩu</label>
       </div>
 
       <div class="options">
         <label><input type="checkbox" name="remember" /> Ghi nhớ</label>
 
-        <a href="#">Quên mật khẩu?</a>
+        <a href="{{ url('forgot-password') }}">Quên mật khẩu?</a>
       </div>
 
       <button type="submit">Đăng nhập</button>
@@ -178,4 +189,14 @@
     </form>
   </div>
 </body>
+<script>
+  setTimeout(() => {
+    document.querySelectorAll('div[style*="background-color"]').forEach(el => {
+      el.style.transition = "opacity 0.5s";
+      el.style.opacity = 0;
+      setTimeout(() => el.remove(), 500);
+    });
+  }, 3000); // 3 giây
+</script>
+
 </html>
