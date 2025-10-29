@@ -19,13 +19,26 @@ class User extends Authenticatable
      */
     const ROLE_ADMIN = 0;
     const ROLE_TEACHER = 1;
-    
+
     const ROLE_STUDENT = 2;
     const  ROLE_SUPPOTER = 3;
-   protected $table = 'users';
+
+
+    const ACTIVE = 0; // NULL
+    const INACTIVE = 1;
+
+    protected $table = 'users';
 
     protected $fillable = [
-        'name', 'email', 'phone_number', 'password', 'avatar', 'birthday', 'role'
+        'name',
+        'email',
+        'phone_number',
+        'password',
+        'avatar',
+        'birthday',
+        'base_salary',
+        'role',
+        'active',
     ];
     /**
      * The attributes that should be hidden for serialization.
@@ -66,5 +79,10 @@ class User extends Authenticatable
     public function testResults()
     {
         return $this->hasMany(TestResult::class, 'student_id');
+    }
+    // bank account
+    public function bankAccount()
+    {
+        return $this->hasOne(BankAccount::class, 'user_id');
     }
 }
