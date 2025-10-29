@@ -9,15 +9,18 @@ class Contract extends Model
 {
     use HasFactory;
 
+    const STATUS_DONE = 1;
+    const STATUS_PENDING = 0;
+    
     protected $table = 'contracts';
 
     protected $fillable = [
-        'code', 'student_id', 'sign_date', 'certificate_id', 'course_id', 'class_id', 'total_value', 'status'
+        'code', 'student_profile_id', 'sign_date', 'certificate_id', 'course_id', 'class_id', 'total_value', 'status', 'collected', 'note', 'path'
     ];
 
-    public function student()
+    public function studentProfile()
     {
-        return $this->belongsTo(User::class, 'student_id');
+        return $this->belongsTo(StudentProfile::class, 'student_profile_id');
     }
     public function course(){
         return $this->belongsTo(Course::class, 'course_id');
@@ -32,4 +35,10 @@ class Contract extends Model
     {
         return $this->hasMany(BillHistory::class, 'contract_id');
     }
+
+    public function certificate()
+    {
+        return $this->belongsTo(Certificate::class, 'certificate_id');
+    }
+    
 }
