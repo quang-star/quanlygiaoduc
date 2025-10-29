@@ -11,7 +11,7 @@ class BankAccount extends Model
 
     protected $table = 'bank_accounts';
 
-    protected $fillable = ['bank', 'account_number'];
+    protected $fillable = ['bank', 'account_number', 'user_id'];
 
     public function bills()
     {
