@@ -8,14 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 class TestResult extends Model
 {
     use HasFactory;
-
+    const ROLE_FIRST_TEST = 0; // test đầu vào
+    const ROLE_OTHER_TEST = 1; // test khác
     protected $table = 'test_results';
 
-    protected $fillable = ['student_id', 'exam_id', 'test_date', 'total_score', 'result_status'];
+    protected $fillable = ['student_profile_id', 'exam_id', 'test_date', 'total_score', 'result_status'];
 
-    public function student()
+    public function studentProfile()
     {
-        return $this->belongsTo(User::class, 'student_id');
+        return $this->belongsTo(StudentProfile::class, 'student_profile_id');
     }
 
     public function exam()
