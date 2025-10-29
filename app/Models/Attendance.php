@@ -11,11 +11,11 @@ class Attendance extends Model
 
     protected $table = 'attendances';
 
-    protected $fillable = ['student_id', 'class_id', 'time_attendance'];
+    protected $fillable = ['student_profile_id', 'class_id', 'time_attendance'];
 
-    public function student()
+    public function studentProfile()
     {
-        return $this->belongsTo(User::class, 'student_id');
+        return $this->belongsTo(User::class, 'student_profile_id');
     }
 
     public function class()
