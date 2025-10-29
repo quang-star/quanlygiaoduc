@@ -27,12 +27,12 @@ class CheckLogin
             return redirect('/admin/students/index');
         }
 
-        // if ($user->role === User::ROLE_STUDENT && !$request->is('staff/*')) {
-        //     return redirect('/staff/work-schedule');
-        // }
-        // if ($user->role === User::ROLE_TEACHER && !$request->is('clients/*')) {
-        //     return redirect('/clients/home');
-        // }
+        if ($user->role === User::ROLE_STUDENT && !$request->is('student/*')) {
+            return redirect('/student/all-schedule');
+        }
+        if ($user->role === User::ROLE_TEACHER && !$request->is('teacher/*')) {
+            return redirect('/teacher/teach-schedule/index');
+        }
         return $next($request);
     }
 }
