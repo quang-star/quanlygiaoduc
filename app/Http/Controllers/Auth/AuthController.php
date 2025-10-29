@@ -5,30 +5,43 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Mail\MailResgister;
 use App\Models\User;
+use App\Services\MailService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Session;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
+
+use Illuminate\Support\Str;
 use Illuminate\Routing\Controller as BaseController;
 
 use function Laravel\Prompts\alert;
 
 class AuthController extends BaseController
 {
+    /**
+     * Xử lý thông tin đăng nhập và redirect đến trang dashboard
+     */
     public function login()
     {
-        //session(['showLogin' => false]);
-        return view('dangnhap');
+        return view('auth.login');
     }
 
 
+    /**
+     * Xử lý thông tin đăng nhập và redirect đến trang dashboard
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function doLogin(Request $request)
     {
         $param = $request->all();
         $remember = $request->has('remember');
-
+        // kiểm tra thống tin đăng nhập 
         $checkLogin = Auth::attempt([
             'email' => $param['email'],
             'password' => $param['password'],
@@ -37,115 +50,130 @@ class AuthController extends BaseController
         if ($checkLogin) {
             $user = Auth::user();
             session(['user_id' => $user->id]);
-
+            // kiểm tra quyen truy cap
             $role = $user->role;
-            if ($role == 0) {
-                return redirect('hopdong');
-            } elseif ($role == 1) {
-                return redirect('khoahoc');
-            } elseif ($role == 2) {
-                return redirect('hocvien');
+            if ($role == User::ROLE_ADMIN) {
+                return redirect('/admin/dashboard/index');
+            } elseif ($role == User::ROLE_STUDENT) {
+                return redirect('/student/all-schedule');
+                if ($user->active == User::INACTIVE) {
+                    return redirect('/login')
+                        ->with('error', 'Tài khoản đang bị khoá vui lòng liên hệ với người quản lý');
+                }
+            } elseif ($role == User::ROLE_TEACHER) {
+                if ($user->active == User::INACTIVE) {
+                    return redirect('/login')->with('error', 'Tài khoản đang bị khoá vui lòng liên hệ với người quản lý');
+                }
+                return redirect('/teacher/teach-schedule/index');
             }
         } else {
-            return redirect('/dangnhap')->with('error', 'Email hoặc mật khẩu không đúng.');
+            return redirect('/login')->with('error', 'Email hoặc mật khẩu không đúng.');
         }
     }
 
 
 
-
-    // public function forgotPassword()
-    // {
-    //     return view('clients.forgot');
-    // }
-
-    // public function postForgotPassword(Request $request)
-    // {
-    //     $param = $request->all();
-    //     $action = $param['action'] ?? 'send_code';
-    //     // Kiểm tra xem có đang xác minh mã hay không
-    //     if ($action === 'send_code') {
-    //         $user = User::where('email', $param['email'])->first();
-    //         if (!$user) {
-    //             return redirect('/forgot')->with('error', 'Email không tồn tại');
-    //         }
-    //         $verifyCode = rand(100000, 999999);
-    //         try {
-    //             $mail = new MailResgister();
-    //             $mail->setEmail($param['email']);
-    //             $mail->setVerifyCode($verifyCode);
-    //             Mail::to($param['email'])->send($mail);
-    //             session([
-    //                 'forgot' => true,
-    //                 'temp_user_data' => ['email' => $param['email']],
-    //                 'verify_code' => $verifyCode
-    //             ]);
-    //             return redirect('/forgot')->with('success', 'Mã xác nhận đã được gửi đến email của bạn');
-    //         } catch (\Exception $e) {
-    //             return redirect('/forgot')->with('error', 'Không thể gửi mã xác nhận. Vui lòng thử lại.');
-    //         }
-    //     }
-    //     // Xử lý các hành động xác minh và đặt lại mật khẩu
-    //     if ($action === 'verify') {
-    //         if ($param['verification_code'] != session('verify_code')) {
-    //             return redirect('/forgot')->with('error', 'Mã xác nhận không đúng');
-    //         }
-    //         session()->forget('verify_code');
-    //         session(['new_password' => true]);
-    //         return redirect('/forgot')->with('success', 'Xác minh thành công. Vui lòng đặt mật khẩu mới');
-    //     }
-    //     // Xử lý đặt lại mật khẩu
-    //     if ($action === 'reset_password') {
-    //         if ($param['new_password'] !== $param['re_new_password']) {
-    //             return redirect('/forgot')->with('error', 'Mật khẩu không khớp');
-    //         }
-    //         $user = User::where('email', session('temp_user_data.email'))->first();
-    //         if (!$user) {
-    //             return redirect('/forgot')->with('error', 'Không tìm thấy người dùng');
-    //         }
-    //         $user->password = Hash::make($param['new_password']);
-    //         $user->save();
-    //         session()->forget(['forgot', 'new_password', 'temp_user_data']);
-    //         return redirect('/login')->with('success', 'Đổi mật khẩu thành công. Vui lòng đăng nhập lại');
-    //     }
-    //     return redirect('/forgot')->with('error', 'Hành động không hợp lệ');
-    // }
-
-
-
+    /**
+     * Đăng xuất người dùng ra khỏi hệ thống
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function logout(Request $request)
     {
         Auth::logout();
         $request->session()->invalidate();
-    $request->session()->regenerateToken();
-        return redirect('/dangnhap')->with('success', 'Đăng xuất thành công');
+        $request->session()->regenerateToken();
+        return redirect('/login')->with('success', 'Đăng xuất thành công');
     }
-    // public function changePassword(Request $request)
-    // {
 
-    //     $userId = session('user_id');
-    //     $user = User::find($userId);
-    //     if ($user->role == User::ROLE_ADMIN) {
-    //         return view('admin.change-password');
-    //     } else if ($user->role == 1) {
-    //         return view('staff.change-password');
-    //     } else if ($user->role == 2) {
-    //         return view('clients.change-password');
-    //     }
-    // }
-    // public function postChangePassword(Request $request)
-    // {
-    //     $param = $request->all();
-    //     //$user = Auth::user();
-    //     $userId = session('user_id');
-    //     $user = User::find($userId);
-    //     if (!Hash::check($param['current_password'], $user->password)) {
-    //         return redirect('/change_password')->with('error', 'Mật khẩu hiện tại không đúng');
-    //     }
-    //   //  dd($param['new_password']);
-    //     $user->password = Hash::make($param['new_password']);
+    public function forgotPasswordIndex()
+    {
+        return view('auth.forgot-password');
+    }
 
-    //     $user->save();
-    //     return redirect('/change_password')->with('success', 'Đổi mật khẩu thành công');
-    // }
+    /**
+     * Gửi liên kết đặt lại mật khẩu đến email của người dùng
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function forgotPassword(Request $request)
+    {
+        $param = $request->all();
+        $email = $param['email'];
+        // Kiểm tra xem có email này có trong hệ thống khônng
+        $user = User::where('email', $email)->first();
+
+        // Nếu không tìm thấy email này trong hệ thống thì thông báo lỗi
+        if (!$user) {
+            return back()->with('error', 'Email không tồn tại trong hệ thống.');
+        }
+        // Kiểm tra xem tài khoản này có đang bị khóa không 
+        if ($user->active == User::INACTIVE) {
+            return redirect('/login')
+                ->with('error', 'Tài khoản đang bị khoá vui lòng liên hệ với người quản lý');
+        }
+        // tạo token và gửi đến mail của người dùng
+        $token = Str::random(64);
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $request->email],
+            ['token' => $token, 'created_at' => Carbon::now()]
+        );
+        $resetLink = url('/reset-password/' . $token);
+        MailService::sendMailResetPassword($user, $resetLink);
+        return back()->with('success', 'Đã gửi liên kết đặt lại mật khẩu tới email của bạn.');
+    }
+
+
+    /**
+     * Hiển thị form đổi mật khẩu cho người dùng
+     *
+     * @param Request $request
+     * @param string $token
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View
+     */
+    public function resetPasswordIndex(Request $request, $token)
+    {
+
+        $reset = DB::table('password_reset_tokens')->where('token', $token)->first();
+        $email = $reset ? $reset->email : null;
+
+        return view('auth.reset-password', [
+            'token' => $token,
+            'email' => $email
+        ]);
+    }
+
+    /**
+     * Đặt lại mật khẩu cho người dùng
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|confirmed|min:6',
+            'token' => 'required'
+        ]);
+
+        $reset = DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->where('token', $request->token)
+            ->first();
+
+        if (!$reset) {
+            return back()->with('error', 'Liên kết không hợp lệ hoặc đã hết hạn.');
+        }
+
+        User::where('email', $request->email)->update([
+            'password' => Hash::make($request->password)
+        ]);
+
+        DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+        return redirect('/login')->with('success', 'Đặt lại mật khẩu thành công, bạn có thể đăng nhập.');
+    }
 }
